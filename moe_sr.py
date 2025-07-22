@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import math
 import traceback
@@ -12,12 +13,12 @@ import cv2
 
 from onnx_infer import OnnxSRInfer
 
+@dataclass(frozen=True, slots=True)
 class ModelInfo:
-    def __init__(self, name, path, scale, algo):
-        self.name = name
-        self.path = path
-        self.scale = scale
-        self.algo = algo
+    name: str
+    path: str
+    scale: int
+    algo: str
 
 State = Literal['idle', 'processing', 'finished', 'error', 'cancel']
 
