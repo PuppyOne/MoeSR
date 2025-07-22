@@ -40,11 +40,22 @@ last_progress_set_time = None
 # Scan models
 model_list = []
 model_root = Path('models')
-for algo in ['real-esrgan', 'real-hatgan']:
-    for folder in [p for p in (model_root / algo).iterdir() if p.is_dir()]:
-        for f in folder.glob('*.onnx'):
-            model_list.append(ModelInfo(str(f.stem), str(f), int(folder.stem.replace('x', '')), algo))
-
+for algo_dir in model_root.iterdir():
+    if not algo_dir.is_dir():
+        continue
+    algo = algo_dir.name
+    for scale_dir in algo_dir.iterdir():
+        if scale_dir.is_dir():
+            scale = int(scale_dir.name.replace('x', ''))
+            for model_file in scale_dir.glob('*.onnx'):
+                model_list.append(
+                    ModelInfo(
+                        name=str(model_file.stem),
+                        path=str(model_file),
+                        scale=scale,
+                        algo=algo,
+                    )
+                )
 
 app = FastAPI()
 if not is_production:
