@@ -8,10 +8,13 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from flask import Flask, request
+from flask_cors import CORS
 import numpy as np
 import cv2
 
 from onnx_infer import OnnxSRInfer
+
+from werkzeug.utils import secure_filename
 
 class ModelInfo:
     def __init__(self, name, path, scale, algo):
@@ -22,8 +25,13 @@ class ModelInfo:
 
 
 # Global Vars
-model_list = []
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+BASE_URL = os.getenv('BASE_URL', 'http://localhost:9000')
 gpuid = 0
+tileSize = 192
+inputType= 'Image'
+model_list = []
 
 def get_base_path():
     """从环境变量获取挂载点"""
@@ -55,6 +63,7 @@ for algo in ['real-esrgan', 'real-hatgan']:
 # main_js.close()
 
 app= Flask(__name__)
+CORS(app)
 
 # @eel.expose
 @app.get('/model_list')
@@ -88,23 +97,28 @@ def seconds_to_hms(seconds):
     return f"{int(hours):0>2d}:{int(minutes):0>2d}:{int(seconds):0>2d}"
 
 def progress_setter(progress,current_time,total_img_num,processed_img_num):
-    global last_progress,last_progress_set_time
-    progress_percent = round(progress*100)
-    total_progress_percent = round((processed_img_num+progress)/total_img_num*100)
-    etr_str = '--:--:--'
-    total_etr_str = '--:--:--'
-    if last_progress_set_time:
-        etr = (current_time-last_progress_set_time) * (1-last_progress)/(progress-last_progress)
-        total_etr = (current_time-last_progress_set_time) * (total_img_num-processed_img_num-last_progress)/(progress-last_progress)
-        etr_str = seconds_to_hms(etr)
-        total_etr_str = seconds_to_hms(total_etr)
-    progress_str = f'{progress_percent}% ETR:{etr_str}'
-    total_progress_str = f'{total_progress_percent}% ETR:{total_etr_str}'
-    # eel.handleSetProgress(progress_percent,progress_str,total_progress_str)
-    last_progress = progress
-    last_progress_set_time = current_time
+    try:
+        global last_progress,last_progress_set_time
+        progress_percent = round(progress*100)
+        total_progress_percent = round((processed_img_num+progress)/total_img_num*100)
+        etr_str = '--:--:--'
+        total_etr_str = '--:--:--'
+        if last_progress_set_time:
+            etr = (current_time-last_progress_set_time) * (1-last_progress)/(progress-last_progress)
+            total_etr = (current_time-last_progress_set_time) * (total_img_num-processed_img_num-last_progress)/(progress-last_progress)
+            etr_str = seconds_to_hms(etr)
+            total_etr_str = seconds_to_hms(total_etr)
+        progress_str = f'{progress_percent}% ETR:{etr_str}'
+        total_progress_str = f'{total_progress_percent}% ETR:{total_etr_str}'
+        # eel.handleSetProgress(progress_percent,progress_str,total_progress_str)
+        last_progress = progress
+        last_progress_set_time = current_time
 
-    print(f"Progress: {progress_str}, Total Progress: {total_progress_str}, Processed: {processed_img_num}/{total_img_num}")
+        print(f"Progress: {progress_str}, Total Progress: {total_progress_str}, Processed: {processed_img_num}/{total_img_num}")
+    except Exception as e:
+        print(f"Error in progress_setter: {str(e)}")
+        # eel.showError(f"Error in progress_setter: {str(e)}")
+        return False
 
 
 def show_error(error_text):
@@ -128,23 +142,48 @@ def py_run_process():
 
     set_process_state('processing')
     # modelName, tileSize, scale, isSkipAlpha, resizeTo: str, inputType, inputImage, outputPath, gpuid,algoName
-    modelName = request.args.get('modelName')
-    tileSize = request.args.get('tileSize', type=int)
-    scale = request.args.get('scale', type=int)
-    isSkipAlpha = request.args.get('isSkipAlpha', 'false').lower() == 'true'
-    resizeTo = request.args.get('resizeTo')
-    inputType = request.args.get('inputType')
-    inputImage = request.args.get('inputImage')
-    outputPath = request.args.get('outputPath')
-    # gpuid = request.args.get('gpuid', '-1')
-    algoName = request.args.get('algoName')
+    # modelName = request.args.get('modelName')
+    # tileSize = request.args.get('tileSize', type=int)
+    scale = request.form.get('scale', type=int)
+    isSkipAlpha = request.form.get('isSkipAlpha', 'false').lower() == 'true'
+    # resizeTo = request.args.get('resizeTo')
+    # inputType = request.args.get('inputType')
+    # inputImage = request.args.get('inputImage')
+    # outputPath = request.args.get('outputPath')
+    # # gpuid = request.args.get('gpuid', '-1')
+    # algoName = request.args.get('algoName')
+
+    model_param = request.form.get('model')
+    if model_param and '-' in model_param:
+        algoName, modelName = model_param.split(':', 1)
 
     # 检查必填参数
-    required_params = [modelName, tileSize, scale, inputType, inputImage, outputPath, algoName]
+    required_params = [modelName, tileSize, scale, inputType, algoName] # inputImage, outputPath,
     if any(p is None or p == '' for p in required_params):
         return {'error': 'Missing required query parameters.'}, 400
 
+    # 检查请求中是否有文件部分
+    if 'image' not in request.files:
+        return {'error': 'No image part in request'}, 400
+
+    file = request.files['image']
+
+    # 检查是否选择了文件
+    if file.filename is None or file.filename == '':
+        return {'error': 'No selected file'}, 400
+
+    # 检查文件类型和大小
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS):
+        return {'error': 'Invalid file type'}, 400
+
+    if file.content_length > MAX_FILE_SIZE:
+        return {'error': 'File size exceeds limit'}, 413
+
     try:
+
+        inputImage,outputPath = upload_image(file)
+        print(f"Input image: {inputImage}, Output path: {outputPath}")
+
         # find model info
         model = ModelInfo('', '', 4, '')
         provider_options = None
@@ -182,12 +221,14 @@ def py_run_process():
             tileSize,
             scale,
             model,
-            resizeTo,
         )
 
+        # Ensure output_path is relative to base_path for correct URL
+        rel_output_path = str(Path(output_path).relative_to(base_path))
         return {
             'status': 'success',
             'outputPath': output_path,
+            'outputUrl': f"{BASE_URL}/{rel_output_path.replace(os.sep, '/')}",
             'modelName': model.name,
             'scale': model.scale,
             'algo': model.algo,
@@ -213,6 +254,23 @@ def py_run_process():
         return {
             'error': error_message
         }, 500
+
+def upload_image(file) -> tuple[Path, Path]:
+    # 生成唯一文件夹
+    unique_id = str(uuid4())
+    folder_path = base_path / unique_id
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+    # 生成安全的文件名
+    original_filename = secure_filename(file.filename)
+    file_ext = original_filename.rsplit('.', 1)[1].lower()
+    input_filename = f"input.{file_ext}"
+    input_path = folder_path / input_filename
+
+    # 保存输入图片
+    file.save(input_path)
+
+    return input_path, folder_path
 
 
 def process_image(
@@ -298,7 +356,6 @@ def get_task_status(task_id: str):
 # eel.start('index.html', mode='custom', cmdline_args=['E:/python/MoeSR/electron/electron.exe', 'webui/main.js'], port=port)
 # py_run_process('RealESRGAN_x4plus', 256, 4, False, '', 'Image', 'test.png', 'output', '-1', 'real-esrgan')
 # py_run_process('x4_Anime_6B-Official', 64, 4, False, None, 'Image', 'input.jpg', '.', '0', 'real-esrgan')
-# x4_Anime_6B-Official 64 4 False None Image D:\Users\zheng\Downloads\学园孤岛视觉图1_MoeSR_x4_jp_Illustration-fix1.png D:\Users\zheng\Downloads 0 real-esrgan
 if __name__ == '__main__':
     if os.getenv('production') == 'true':
         app.run(host='0.0.0.0', port=9000)
