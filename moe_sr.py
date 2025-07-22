@@ -2,10 +2,10 @@ import os
 import math
 import traceback
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import uuid4
 
-from flask import Flask, request
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from werkzeug.utils import secure_filename
 import numpy as np
 import cv2
@@ -46,17 +46,20 @@ for algo in ['real-esrgan', 'real-hatgan']:
             model_list.append(ModelInfo(str(f.stem), str(f), int(folder.stem.replace('x', '')), algo))
 
 
-app = Flask( __name__)
+app = FastAPI()
 if not is_production:
-    from flask_cors import CORS
-    CORS(app)
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+    )
 
 @app.get('/model_list')
-def py_get_model_list():
-    algo_name=request.args.get('algo')
-    if not algo_name:
+def py_get_model_list(algo: str | None = None):
+    if not algo:
         return [m.name for m in model_list]
-    models = [m.name for m in model_list if m.algo == algo_name]
+    models = [m.name for m in model_list if m.algo == algo]
     return models
 
 # @eel.expose
@@ -119,72 +122,66 @@ def set_process_state(state: State):
 
 
 @app.post('/run_process')
-def py_run_process():
+async def py_run_process(
+    scale: Annotated[int, Form(..., ge=1, le=16)],
+    model: Annotated[str, Form(..., pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
+    image: Annotated[UploadFile, File(...)],
+    isSkipAlpha: Annotated[str, Form(..., pattern='^(true|false)$')]='false',
+):
+    global last_state
     if last_state == 'processing':
-        return {'error': 'A process is already running.'}, 400
+        raise HTTPException(status_code=400, detail="A process is already running.")
 
-    # modelName, tileSize, scale, isSkipAlpha, resizeTo: str, inputType, inputImage, outputPath, gpuid,algoName
-    # modelName = request.args.get('modelName')
-    # tileSize = request.args.get('tileSize', type=int)
-    scale = request.form.get('scale', 2, type=int)
-    isSkipAlpha = request.form.get('isSkipAlpha', 'false').lower() == 'true'
-    # resizeTo = request.args.get('resizeTo')
-    # inputType = request.args.get('inputType')
-    # inputImage = request.args.get('inputImage')
-    # outputPath = request.args.get('outputPath')
-    # # gpuid = request.args.get('gpuid', '-1')
-    # algoName = request.args.get('algoName')
-    
+    isSkipAlpha_bool = isSkipAlpha.lower() == 'true'
 
-    model_param = request.form.get('model')
+    model_param = model
     if model_param and ':' in model_param:
         algoName, modelName = model_param.split(':', 1)
     else:
-        return {'error': 'Invalid or missing model parameter.'}, 400 
-        
-    # 检查请求中是否有文件部分
-    if 'image' not in request.files:
-        return {'error': 'No image part in request'}, 400
-
-    file = request.files['image']
-
-    # 检查是否选择了文件
-    if file.filename is None or file.filename == '':
-        return {'error': 'No selected file'}, 400
+        raise HTTPException(status_code=400, detail="Invalid model parameter format. Expected 'algo:model'.")
 
     # 检查文件类型和大小
-    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS):
-        return {'error': 'Invalid file type'}, 400
+    filename = image.filename
+    if not (filename and '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}.",
+        )
 
-    if file.content_length > MAX_FILE_SIZE:
-        return {'error': 'File size exceeds limit'}, 413
+    # contents = await image.read()
+    # if len(contents) > MAX_FILE_SIZE:
+    #     raise HTTPException(
+    #         status_code=413,
+    #         detail=f"File size exceeds limit of {MAX_FILE_SIZE / (1024 * 1024)} MB.",
+    #     )
 
     try:
         set_process_state('processing')
-        inputImage,outputPath = upload_image(file)
+        # Save the uploaded file
+        inputImage, outputPath = await upload_file(image)
         # find model info
-        model = ModelInfo('', '', 4, '')
+        model_obj = ModelInfo('', '', 4, '')
         provider_options = None
         if gpuid >= 0:
             provider_options = [{'device_id': gpuid}]
         for m in model_list:
             if m.name == modelName and m.algo == algoName:
-                model = m
+                model_obj = m
                 break
         # init sr instance
-        sr_instance = OnnxSRInfer(model.path, model.scale, model.name,
+        sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name,
                                     provider_options=provider_options, progress_setter=progress_setter)
         # skip alpha sr
-        if isSkipAlpha:
+        if isSkipAlpha_bool:
             sr_instance.alpha_upsampler = 'interpolation'
-        
+
         output_path = process_image(
             sr_instance,
             inputImage,
             outputPath,
             tileSize,
             scale,
-            model,
+            model_obj,
         )
         # Ensure output_path is relative to base_path for correct URL
         rel_output_path = str(Path(output_path).relative_to(base_path))
@@ -192,32 +189,18 @@ def py_run_process():
             'status': 'success',
             'outputPath': output_path,
             'outputUrl': f"{base_url}/{rel_output_path.replace(os.sep, '/')}",
-            'modelName': model.name,
-            'scale': model.scale,
-            'algo': model.algo,
+            'modelName': model_obj.name,
+            'scale': model_obj.scale,
+            'algo': model_obj.algo,
         }
-        # batch process
-        # imgs_in = []
-        # if inputType == 'Folder':
-        #     input_folder = Path(inputImage)
-        #     for f in input_folder.glob('*.jpg'):
-        #         imgs_in.append(f)
-        #     for f in input_folder.glob('*.png'):
-        #         imgs_in.append(f)
-        # else:
-        #     imgs_in = [inputImage]
-        # sr_instance.total_img_num = len(imgs_in)
-        # sr_instance.processed_img_num = 0
 
     except Exception as e:
         error_message = traceback.format_exc()
         show_error(error_message)
         set_process_state('error')
-        return {
-            'error': error_message
-        }, 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-def upload_image(file) -> tuple[Path, Path]:
+async def upload_file(file: UploadFile) -> tuple[Path, Path]:
     # Generate a unique folder path
     unique_id = str(uuid4())
     folder_path = base_path / unique_id
@@ -230,7 +213,8 @@ def upload_image(file) -> tuple[Path, Path]:
     input_path = folder_path / input_filename
 
     # Save file
-    file.save(input_path)
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
 
     return input_path, folder_path
 
@@ -296,7 +280,7 @@ def process_image(
     set_process_state('finished')
     return str(Path(outputPath) / f'{Path(img_in).stem}_MoeSR_{model.name}.png')
 
-@app.get('/task/<task_id>')
+@app.get('/task/{task_id}')
 def get_task_status(task_id: str):
     """获取任务状态"""
     # task_id = UUID(task_id)
@@ -313,8 +297,3 @@ def get_task_status(task_id: str):
         'last_progress': last_progress,
         'last_progress_set_time': last_progress_set_time,
     }
-if __name__ == '__main__':
-    if is_production:
-        app.run(host='0.0.0.0', port=9000)
-    else:
-        app.run(debug=True)
