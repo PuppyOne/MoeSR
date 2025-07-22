@@ -39,7 +39,7 @@ last_state: State = 'idle'
 last_progress = None
 last_progress_set_time = None
 # Scan models
-model_list = []
+model_list: list[ModelInfo] = []
 model_root = Path('models')
 for algo_dir in model_root.iterdir():
     if not algo_dir.is_dir():
