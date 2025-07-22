@@ -67,12 +67,14 @@ if not is_production:
         allow_origins=["*"],
     )
 
-@app.get('/model_list')
-def py_get_model_list(algo: str | None = None):
-    if not algo:
-        return [m.name for m in model_list]
-    models = [m.name for m in model_list if m.algo == algo]
-    return models
+@app.get('/models')
+def get_models():
+    """返回按 algo 分类的 model 名称列表"""
+    result: dict[str, list[str]] = {}
+    for model in model_list:
+        result.setdefault(model.algo, []).append(model.name)
+    return result
+
 
 # @eel.expose
 # def py_get_settings():
