@@ -23,17 +23,6 @@ export default async function Home() {
  * }
  */
 const getModels = async (): Promise<Record<string, string[]>> => {
-  const algos = ['real-esrgan', 'real-hatgan'];
-
-  const modelEntries = await Promise.all(
-    algos.map(async algo => {
-      const response = await api.get<string[]>('/model_list', {
-        params: { algo },
-      });
-      return [algo, response.data] as const;
-    })
-  );
-
-  // Convert to { [algo]: string[] }
-  return Object.fromEntries(modelEntries);
+  const { data } = await api.get<Record<string, string[]>>('/models');
+  return data;
 };
