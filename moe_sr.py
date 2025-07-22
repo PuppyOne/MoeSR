@@ -36,8 +36,8 @@ base_path = Path(os.getenv('BASE_PATH','./'))
 is_production = os.getenv('production') == 'true'
 
 last_state: State = 'idle'
-last_progress = None
-last_progress_set_time = None
+last_progress: float | None = None
+last_progress_set_time: float | None = None
 # Scan models
 model_list: list[ModelInfo] = []
 model_root = Path('models')
@@ -105,7 +105,7 @@ def progress_setter(progress,current_time,total_img_num,processed_img_num):
         total_progress_percent = round((processed_img_num+progress)/total_img_num*100)
         etr_str = '--:--:--'
         total_etr_str = '--:--:--'
-        if last_progress_set_time:
+        if last_progress is not None and last_progress_set_time:
             etr = (current_time-last_progress_set_time) * (1-last_progress)/(progress-last_progress)
             total_etr = (current_time-last_progress_set_time) * (total_img_num-processed_img_num-last_progress)/(progress-last_progress)
             etr_str = seconds_to_hms(etr)
