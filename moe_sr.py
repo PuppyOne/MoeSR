@@ -19,7 +19,7 @@ class ModelInfo:
         self.scale = scale
         self.algo = algo
 
-State = Literal['idle', 'processing', 'finish', 'error', 'cancel']
+State = Literal['idle', 'processing', 'finished', 'error', 'cancel']
 
 
 # Global Vars
