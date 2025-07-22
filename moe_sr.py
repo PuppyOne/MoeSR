@@ -161,25 +161,37 @@ def py_run_process():
         if isSkipAlpha:
             sr_instance.alpha_upsampler = 'interpolation'
 
-        task_id = uuid4()
-        task_thread = Thread(
-            target=process_image,
-            args=(
-                task_id,
-                sr_instance,
-                inputImage,
-                outputPath,
-                tileSize,
-                scale,
-                model,
-                resizeTo,
-            ),
+        # task_thread = Thread(
+        #     target=process_image,
+        #     args=(
+        #         task_id,
+        #         sr_instance,
+        #         inputImage,
+        #         outputPath,
+        #         tileSize,
+        #         scale,
+        #         model,
+        #         resizeTo,
+        #     ),
+        # )
+        # task_thread.start()
+        output_path = process_image(
+            sr_instance,
+            inputImage,
+            outputPath,
+            tileSize,
+            scale,
+            model,
+            resizeTo,
         )
-        task_thread.start()
 
         return {
-            'task_id': str(task_id),
-        }, 202
+            'status': 'success',
+            'outputPath': output_path,
+            'modelName': model.name,
+            'scale': model.scale,
+            'algo': model.algo,
+        }, 201
 
         # batch process
         # imgs_in = []
@@ -204,7 +216,6 @@ def py_run_process():
 
 
 def process_image(
-    task_id: UUID,
     sr_instance: OnnxSRInfer,
     inputImage: str | Path,
     outputPath: str | Path,
