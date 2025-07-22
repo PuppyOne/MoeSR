@@ -138,13 +138,11 @@ async def py_run_process(
     scale: Annotated[int, Form(ge=1, le=16)],
     model: Annotated[str, Form(pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
     image: Annotated[UploadFile, File()],
-    isSkipAlpha: Annotated[str, Form(pattern='^(true|false)$')] = 'false',
+    isSkipAlpha: Annotated[bool, Form()] = False,
 ):
     global last_state
     if last_state == 'processing':
         raise HTTPException(status_code=400, detail="A process is already running.")
-
-    isSkipAlpha_bool = isSkipAlpha.lower() == 'true'
 
     model_param = model
     if model_param and ':' in model_param:
@@ -184,7 +182,7 @@ async def py_run_process(
         sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name,
                                     provider_options=provider_options, progress_setter=progress_setter)
         # skip alpha sr
-        if isSkipAlpha_bool:
+        if isSkipAlpha:
             sr_instance.alpha_upsampler = 'interpolation'
 
         output_path = process_image(
