@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, status
 from werkzeug.utils import secure_filename
 import numpy as np
 import cv2
@@ -135,7 +135,7 @@ def set_process_state(state: State):
     last_state = state
 
 
-@app.post('/run_process')
+@app.post('/run_process', status_code=status.HTTP_201_CREATED)
 async def py_run_process(
     scale: Annotated[int, Form(ge=1, le=16)],
     model: Annotated[str, Form(pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
