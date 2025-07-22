@@ -135,10 +135,10 @@ def set_process_state(state: State):
 
 @app.post('/run_process')
 async def py_run_process(
-    scale: Annotated[int, Form(..., ge=1, le=16)],
-    model: Annotated[str, Form(..., pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
-    image: Annotated[UploadFile, File(...)],
-    isSkipAlpha: Annotated[str, Form(..., pattern='^(true|false)$')]='false',
+    scale: Annotated[int, Form(ge=1, le=16)],
+    model: Annotated[str, Form(pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
+    image: Annotated[UploadFile, File()],
+    isSkipAlpha: Annotated[str, Form(pattern='^(true|false)$')] = 'false',
 ):
     global last_state
     if last_state == 'processing':
@@ -211,6 +211,7 @@ async def py_run_process(
         show_error(error_message)
         set_process_state('error')
         raise HTTPException(status_code=500, detail=str(e))
+
 
 async def upload_file(file: UploadFile) -> tuple[Path, Path]:
     # Generate a unique folder path
