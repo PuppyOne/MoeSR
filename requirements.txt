@@ -1,3 +1,5 @@
-onnxruntime-directml
-opencv-python
-git+https://github.com/luoyily/Eel.git
+onnxruntime
+opencv-python-headless
+numpy
+fastapi[standard]
+werkzeug
