@@ -293,18 +293,9 @@ def process_image(
     set_process_state('finished')
     return str(Path(outputPath) / f'{Path(img_in).stem}_MoeSR_{model.name}.png')
 
-@app.get('/task/{task_id}')
-def get_task_status(task_id: str):
+@app.get('/status')
+def get_task_status():
     """获取任务状态"""
-    # task_id = UUID(task_id)
-    # if task_id in tasks:
-    #     task_info = tasks[task_id]
-    #     return {
-    #         'status': task_info.get('status', 'unknown'),
-    #         'progress': task_info.get('progress', 0),
-    #         'result': task_info.get('result', None),
-    #     }
-    # return {'status': 'not found'}, 404
     return {
         'status': last_state,
         'last_progress': last_progress,
