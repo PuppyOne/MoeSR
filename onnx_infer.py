@@ -4,6 +4,7 @@ import numpy as np
 import math
 import time
 
+print(ort.get_available_providers(), ort.get_device(), sep='\n')
 class OnnxSRInfer:
 
     def __init__(self, model_path,scale,name,
