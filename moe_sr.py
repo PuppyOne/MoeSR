@@ -220,6 +220,11 @@ async def upload_file(file: UploadFile) -> tuple[Path, Path]:
     folder_path.mkdir(parents=True, exist_ok=True)
 
     # Generate input file name
+    if not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="missing file name.",
+        )
     original_filename = secure_filename(file.filename)
     file_ext = original_filename.rsplit('.', 1)[1].lower()
     input_filename = f"input.{file_ext}"
