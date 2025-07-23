@@ -40,7 +40,7 @@ last_progress: float | None = None
 last_progress_set_time: float | None = None
 # Scan models
 model_list: list[ModelInfo] = []
-model_root = Path('models')
+model_root = base_path / 'models'
 for algo_dir in model_root.iterdir():
     if not algo_dir.is_dir():
         continue
