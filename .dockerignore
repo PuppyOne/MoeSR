@@ -1,0 +1,6 @@
+*
+!/Dockerfile
+!/models
+!/moe_sr.py
+!/onnx_infer.py
+!/requirements.txt
