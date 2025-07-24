@@ -183,6 +183,9 @@ async def py_run_process(
         # init sr instance
         sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name,
                                     provider_options=provider_options, progress_setter=progress_setter)
+
+        print(f'Using providers: {sr_instance.sess.get_providers()}')
+
         # skip alpha sr
         if isSkipAlpha:
             sr_instance.alpha_upsampler = 'interpolation'
