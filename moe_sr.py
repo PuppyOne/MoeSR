@@ -10,6 +10,7 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException, status
 from werkzeug.utils import secure_filename
 import numpy as np
 import cv2
+import onnxruntime as ort
 
 from onnx_infer import OnnxSRInfer
 
@@ -308,4 +309,19 @@ def get_task_status():
         'status': last_state,
         'last_progress': last_progress,
         'last_progress_set_time': last_progress_set_time,
+    }
+
+@app.get("/health")
+async def health_check():
+    available_providers = ort.get_available_providers()
+
+    gpu_info = {
+        "onnxruntime_providers": available_providers,
+        "cuda_available": "CUDAExecutionProvider" in available_providers,
+        "tensorrt_available": "TensorrtExecutionProvider" in available_providers,
+    }
+
+    return {
+        "status": "OK",
+        "gpu_support": gpu_info,
     }
