@@ -175,13 +175,13 @@ async def py_run_process(
         model_obj = ModelInfo('', '', 4, '')
         provider_options = None
         if gpuid >= 0:
-            provider_options = [{'device_id': gpuid}, {'device_id': gpuid}]
+            provider_options = [{'device_id': gpuid}]
         for m in model_list:
             if m.name == modelName and m.algo == algoName:
                 model_obj = m
                 break
         # init sr instance
-        sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name, providers=['TensorrtExecutionProvider', 'CUDAExecutionProvider'],
+        sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name, providers=['CUDAExecutionProvider'],
                                     provider_options=provider_options, progress_setter=progress_setter)
 
         print(f'Using providers: {sr_instance.sess.get_providers()}')
