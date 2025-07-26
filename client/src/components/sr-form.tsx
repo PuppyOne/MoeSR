@@ -11,6 +11,12 @@ import {
   Button,
   addToast,
   Image,
+  Modal,
+  ModalContent,
+  ModalBody,
+  ModalFooter,
+  Link,
+  ModalHeader,
 } from '@heroui/react';
 import { isAxiosError } from 'axios';
 import { useState } from 'react';
@@ -55,75 +61,95 @@ export default function SRForm({
 
   return (
     <>
-      {outputUrl ? (
-        <Image
-          src={outputUrl!}
-          alt="Processed Image"
-          className="w-full max-w-md"
+      <Form className="flex gap-5" onSubmit={handleSubmit}>
+        <Input
+          name="image"
+          type="file"
+          accept="image/*"
+          label="Input Image"
+          labelPlacement="outside"
+          isDisabled={isLoading}
+          isRequired
         />
-      ) : (
-        <Form className="flex gap-5" onSubmit={handleSubmit}>
-          <Input
-            name="image"
-            type="file"
-            accept="image/*"
-            label="Input Image"
-            labelPlacement="outside"
-            isDisabled={isLoading}
-            isRequired
-          />
-          <Select
-            name="model"
-            label="Model"
-            labelPlacement="outside"
-            placeholder="Select a model"
-            isDisabled={isLoading}
-            isRequired
-            disallowEmptySelection
-          >
-            {Object.entries(modelName).map(([algo, models]) => (
-              <SelectSection key={algo} title={algo}>
-                {models.map(model => (
-                  <SelectItem key={`${algo}:${model}`}>{model}</SelectItem>
-                ))}
-              </SelectSection>
-            ))}
-          </Select>
-          <Slider
-            name="scale"
-            label="Scale"
-            defaultValue={0.4}
-            maxValue={16}
-            minValue={2}
-            marks={[
-              {
-                value: 2,
-                label: 'x2',
-              },
-              {
-                value: 4,
-                label: 'x4',
-              },
-              {
-                value: 8,
-                label: 'x8',
-              },
-              {
-                value: 16,
-                label: 'x16',
-              },
-            ]}
-            getValue={value => `x${value}`}
-            isDisabled={isLoading}
-          />
-          <Checkbox name="isSkipAlpha" value="true" isDisabled={isLoading}>
-            Skip Alpha Channel
-          </Checkbox>
-          <Button color="primary" type="submit" isLoading={isLoading} fullWidth>
-            Start
-          </Button>
-        </Form>
-      )}
+        <Select
+          name="model"
+          label="Model"
+          labelPlacement="outside"
+          placeholder="Select a model"
+          isDisabled={isLoading}
+          isRequired
+          disallowEmptySelection
+        >
+          {Object.entries(modelName).map(([algo, models]) => (
+            <SelectSection key={algo} title={algo}>
+              {models.map(model => (
+                <SelectItem key={`${algo}:${model}`}>{model}</SelectItem>
+              ))}
+            </SelectSection>
+          ))}
+        </Select>
+        <Slider
+          name="scale"
+          label="Scale"
+          defaultValue={0.4}
+          maxValue={16}
+          minValue={2}
+          marks={[
+            {
+              value: 2,
+              label: 'x2',
+            },
+            {
+              value: 4,
+              label: 'x4',
+            },
+            {
+              value: 8,
+              label: 'x8',
+            },
+            {
+              value: 16,
+              label: 'x16',
+            },
+          ]}
+          getValue={value => `x${value}`}
+          isDisabled={isLoading}
+        />
+        <Checkbox name="isSkipAlpha" value="true" isDisabled={isLoading}>
+          Skip Alpha Channel
+        </Checkbox>
+        <Button color="primary" type="submit" isLoading={isLoading} fullWidth>
+          Start
+        </Button>
+      </Form>
+      <Modal
+        isOpen={!!outputUrl}
+        onClose={() => setOutputUrl(null)}
+        hideCloseButton
+      >
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader>Processed Image</ModalHeader>
+              <ModalBody className="flex  items-center">
+                <Image
+                  src={outputUrl!}
+                  alt="Processed Image"
+                  className="w-full min-w-xs max-w-md"
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="primary" as={Link} href={outputUrl!}>
+                  Download
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </>
   );
 }
