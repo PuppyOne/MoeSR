@@ -172,7 +172,7 @@ async def py_run_process(
     try:
         set_process_state('processing')
         # Save the uploaded file
-        inputImage, outputPath = await upload_file(image)
+        inputImage, outputPath, id = await upload_file(image)
         meta_path = outputPath / "meta.json"
 
         # find model info
@@ -188,6 +188,7 @@ async def py_run_process(
         # 写入 meta
         meta_data = {
             "status": 'processing',
+            "id": id,
             "model": model_obj.name,
             "algo": model_obj.algo,
             "scale": scale,
@@ -226,6 +227,7 @@ async def py_run_process(
 
         return {
             'status': 'success',
+            'id': id,
             'outputPath': output_path,
             'outputUrl': f"{base_url}/{rel_output_path.replace(os.sep, '/')}",
             'modelName': model_obj.name,
@@ -240,7 +242,7 @@ async def py_run_process(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def upload_file(file: UploadFile) -> tuple[Path, Path]:
+async def upload_file(file: UploadFile) -> tuple[Path, Path, str]:
     # Generate a unique folder path
     unique_id = str(uuid4())
     folder_path = base_path / unique_id
@@ -261,7 +263,7 @@ async def upload_file(file: UploadFile) -> tuple[Path, Path]:
     with open(input_path, "wb") as f:
         f.write(await file.read())
 
-    return input_path, folder_path
+    return input_path, folder_path, unique_id
 
 
 def process_image(
