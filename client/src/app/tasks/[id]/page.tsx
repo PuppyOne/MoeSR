@@ -1,4 +1,4 @@
-import { Image } from '@heroui/react';
+import { Button, Image, Link } from '@heroui/react';
 import api from '@/lib/api';
 
 export default async function Task({
@@ -9,10 +9,15 @@ export default async function Task({
   const { id } = await params;
   const { data } = await api.get<{ outputUrl: string }>(`/tasks/${id}`);
   return (
-    <Image
-      src={data.outputUrl}
-      alt="Processed Image"
-      className="w-full min-w-xs max-w-md"
-    />
+    <>
+      <Image
+        src={data.outputUrl}
+        alt="Processed Image"
+        className="w-full min-w-xs max-w-md"
+      />
+      <Button color="primary" as={Link} href={data.outputUrl} fullWidth>
+        Download
+      </Button>
+    </>
   );
 }
