@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 import os
 import math
 import traceback
@@ -172,6 +173,8 @@ async def py_run_process(
         set_process_state('processing')
         # Save the uploaded file
         inputImage, outputPath = await upload_file(image)
+        meta_path = outputPath / "meta.json"
+
         # find model info
         model_obj = ModelInfo('', '', 4, '')
         provider_options = None
@@ -181,6 +184,19 @@ async def py_run_process(
             if m.name == modelName and m.algo == algoName:
                 model_obj = m
                 break
+
+        # 写入 meta
+        meta_data = {
+            "status": 'processing',
+            "model": model_obj.name,
+            "algo": model_obj.algo,
+            "scale": scale,
+            "input": filename,
+        }
+
+        with open(meta_path, "w", encoding="utf-8") as meta_file:
+            json.dump(meta_data, meta_file, ensure_ascii=False, indent=2)
+
         # init sr instance
         sr_instance = OnnxSRInfer(model_obj.path, model_obj.scale, model_obj.name, providers=['CUDAExecutionProvider'],
                                     provider_options=provider_options, progress_setter=progress_setter)
@@ -201,6 +217,13 @@ async def py_run_process(
         )
         # Ensure output_path is relative to base_path for correct URL
         rel_output_path = str(Path(output_path).relative_to(base_path))
+
+        # 更新 meta.json 状态为 finished，并包含输出url
+        meta_data["status"] = "finished"
+        meta_data["outputUrl"] = f"{base_url}/{rel_output_path.replace(os.sep, '/')}"
+        with open(meta_path, "w", encoding="utf-8") as meta_file:
+            json.dump(meta_data, meta_file, ensure_ascii=False, indent=2)
+
         return {
             'status': 'success',
             'outputPath': output_path,
@@ -325,3 +348,13 @@ async def health_check():
         "status": "OK",
         "gpu_support": gpu_info,
     }
+
+@app.get('/tasks/{task_id}')
+async def get_task(task_id: str):
+    """获取任务状态"""
+    meta_path = base_path / task_id / "meta.json"
+    if not meta_path.exists():
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    with open(meta_path, "r", encoding="utf-8") as meta_file:
+        return json.load(meta_file)
