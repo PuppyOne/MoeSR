@@ -35,7 +35,11 @@ export default function TaskModal({
   }, [id]);
 
   return (
-    <Modal defaultOpen hideCloseButton onClose={() => router.back()}>
+    <Modal
+      defaultOpen
+      hideCloseButton
+      onClose={() => setTimeout(router.back, 500)}
+    >
       <ModalContent>
         {onClose => (
           <>
