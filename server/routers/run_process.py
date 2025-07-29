@@ -3,6 +3,7 @@ import os
 import traceback
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, status
 
@@ -41,6 +42,7 @@ async def py_run_process(
 
     # 检查文件类型和大小
     filename = image.filename
+
     if not (
         filename
         and "." in filename
@@ -61,8 +63,18 @@ async def py_run_process(
     try:
         state_manager.set_process_state("processing")
         # Save the uploaded file
-        inputImage, outputPath, id = await upload_file(image)
-        meta_path = outputPath / "meta.json"
+        # Generate a unique folder path
+        id = str(uuid4())
+        folder_path = base_path / id
+
+        # Generate input file name
+        extension = filename.rsplit(".", 1)[1].lower()
+        input_filename = f"input.{extension}"
+
+        input_path = folder_path / input_filename
+        meta_path = folder_path / "meta.json"
+
+        await upload_file(image, input_path)
 
         # find model info
         model_obj = ModelInfo("", "", 4, "")
@@ -105,8 +117,8 @@ async def py_run_process(
 
         output_path = process_image(
             sr_instance,
-            inputImage,
-            outputPath,
+            input_path,
+            folder_path,
             tileSize,
             scale,
             model_obj,
