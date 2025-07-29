@@ -13,7 +13,7 @@ import numpy as np
 import cv2
 import onnxruntime as ort
 
-from onnx_infer import OnnxSRInfer
+from .onnx_infer import OnnxSRInfer
 
 @dataclass(frozen=True, slots=True)
 class ModelInfo:
