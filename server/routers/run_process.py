@@ -15,6 +15,7 @@ from config import (
 )
 from core.onnx_infer import OnnxSRInfer
 from core.global_state import state_manager
+from core.models import model_list
 from core.process import process_image
 from core.utils import progress_setter, upload_file
 from schemas import ModelInfo
@@ -75,7 +76,7 @@ async def py_run_process(
         provider_options = None
         if gpuid >= 0:
             provider_options = [{"device_id": gpuid}]
-        for m in state_manager.model_list:
+        for m in model_list:
             if m.name == modelName and m.algo == algoName:
                 model_obj = m
                 break
