@@ -13,12 +13,12 @@ from .onnx_infer import OnnxSRInfer
 def process_image(
     sr_instance: OnnxSRInfer,
     inputImage: str | Path,
-    outputPath: str | Path,
+    output_path: str | Path,
     tileSize: int,
     scale: int,
     model: ModelInfo,
     resizeTo: str | None = None,
-) -> str:
+) -> None:
     """sr process"""
     img_in = base_path / inputImage
 
@@ -58,20 +58,7 @@ def process_image(
     else:
         img_out = sr_img
     # save
-    img_in_name = Path(img_in).stem
-    img_in_ext = Path(img_in).suffix
-    final_output_path = (
-        base_path / Path(outputPath) / f"{img_in_name}_MoeSR_{model.name}.png"
-    )
-    if final_output_path.exists():
-        final_output_path = (
-            base_path
-            / Path(outputPath)
-            / f"{img_in_name}_{img_in_ext}_MoeSR_{model.name}.png"
-        )
-    # cv2.imwrite(str(final_output_path), img_out)
-    cv2.imencode(".png", img_out)[1].tofile(final_output_path)
+    cv2.imencode(".png", img_out)[1].tofile(output_path)
     sr_instance.processed_img_num += 1
 
     state_manager.set_process_state("finished")
-    return str(Path(outputPath) / f"{Path(img_in).stem}_MoeSR_{model.name}.png")

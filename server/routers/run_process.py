@@ -72,6 +72,7 @@ async def py_run_process(
         input_filename = f"input.{extension}"
 
         input_path = folder_path / input_filename
+        output_path = folder_path / "output.png"
         meta_path = folder_path / "meta.json"
 
         await upload_file(image, input_path)
@@ -115,10 +116,10 @@ async def py_run_process(
         if isSkipAlpha:
             sr_instance.alpha_upsampler = "interpolation"
 
-        output_path = process_image(
+        process_image(
             sr_instance,
             input_path,
-            folder_path,
+            output_path,
             tileSize,
             scale,
             model_obj,
