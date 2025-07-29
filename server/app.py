@@ -14,6 +14,9 @@ if not is_production:
         allow_origins=["*"],
     )
 
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/static/tasks", StaticFiles(directory="tasks"), name="tasks")
+
 app.include_router(health.router)
 app.include_router(models.router)
 app.include_router(run_process.router)
