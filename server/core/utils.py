@@ -15,28 +15,12 @@ def seconds_to_hms(seconds):
     return f"{int(hours):0>2d}:{int(minutes):0>2d}:{int(seconds):0>2d}"
 
 
-async def upload_file(file: UploadFile) -> tuple[Path, Path, str]:
-    # Generate a unique folder path
-    unique_id = str(uuid4())
-    folder_path = base_path / unique_id
-    folder_path.mkdir(parents=True, exist_ok=True)
-
-    # Generate input file name
-    if not file.filename:
-        raise HTTPException(
-            status_code=400,
-            detail="missing file name.",
-        )
-    original_filename = secure_filename(file.filename)
-    file_ext = original_filename.rsplit(".", 1)[1].lower()
-    input_filename = f"input.{file_ext}"
-    input_path = folder_path / input_filename
+async def upload_file(file: UploadFile, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     # Save file
-    with open(input_path, "wb") as f:
+    with open(path, "wb") as f:
         f.write(await file.read())
-
-    return input_path, folder_path, unique_id
 
 
 def progress_setter(progress,current_time,total_img_num,processed_img_num):
