@@ -45,12 +45,12 @@ def process_image(
         target_w = w * scale
     # size in parameters first
     if resizeTo:
-        if 'x' in resizeTo:
-            param_w = int(resizeTo.split('x')[0])
+        if "x" in resizeTo:
+            param_w = int(resizeTo.split("x")[0])
             target_w = param_w
             target_h = int(h * param_w / w)
-        elif '/' in resizeTo:
-            ratio = int(resizeTo.split('/')[0]) / int(resizeTo.split('/')[1])
+        elif "/" in resizeTo:
+            ratio = int(resizeTo.split("/")[0]) / int(resizeTo.split("/")[1])
             target_w = int(w * ratio)
             target_h = int(h * ratio)
     if target_w:
@@ -61,17 +61,17 @@ def process_image(
     img_in_name = Path(img_in).stem
     img_in_ext = Path(img_in).suffix
     final_output_path = (
-        base_path / Path(outputPath) / f'{img_in_name}_MoeSR_{model.name}.png'
+        base_path / Path(outputPath) / f"{img_in_name}_MoeSR_{model.name}.png"
     )
     if final_output_path.exists():
         final_output_path = (
             base_path
             / Path(outputPath)
-            / f'{img_in_name}_{img_in_ext}_MoeSR_{model.name}.png'
+            / f"{img_in_name}_{img_in_ext}_MoeSR_{model.name}.png"
         )
     # cv2.imwrite(str(final_output_path), img_out)
-    cv2.imencode('.png', img_out)[1].tofile(final_output_path)
+    cv2.imencode(".png", img_out)[1].tofile(final_output_path)
     sr_instance.processed_img_num += 1
 
-    state_manager.set_process_state('finished')
-    return str(Path(outputPath) / f'{Path(img_in).stem}_MoeSR_{model.name}.png')
+    state_manager.set_process_state("finished")
+    return str(Path(outputPath) / f"{Path(img_in).stem}_MoeSR_{model.name}.png")

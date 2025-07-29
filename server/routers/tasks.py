@@ -10,7 +10,7 @@ router = APIRouter(
 )
 
 
-@router.get('/{task_id}')
+@router.get("/{task_id}")
 async def get_task(task_id: str):
     """获取任务状态"""
     meta_path = base_path / task_id / "meta.json"

@@ -2,10 +2,10 @@ from fastapi import APIRouter
 import onnxruntime as ort
 
 
-router = APIRouter(prefix='/health', tags=['health'])
+router = APIRouter(prefix="/health", tags=["health"])
 
 
-@router.get('')
+@router.get("")
 async def health_check():
     available_providers = ort.get_available_providers()
 
