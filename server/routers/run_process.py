@@ -37,13 +37,7 @@ async def py_run_process(
     if state_manager.last_state == "processing":
         raise HTTPException(status_code=400, detail="A process is already running.")
 
-    if model and ":" in model:
-        algoName, modelName = model.split(":", 1)
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid model parameter format. Expected 'algo:model'.",
-        )
+    algoName, modelName = model.split(":", 1)
 
     # 检查文件类型和大小
     filename = image.filename
