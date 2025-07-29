@@ -28,7 +28,7 @@ async def upload_file(file: UploadFile) -> tuple[Path, Path, str]:
             detail="missing file name.",
         )
     original_filename = secure_filename(file.filename)
-    file_ext = original_filename.rsplit('.', 1)[1].lower()
+    file_ext = original_filename.rsplit(".", 1)[1].lower()
     input_filename = f"input.{file_ext}"
     input_path = folder_path / input_filename
 
@@ -44,15 +44,15 @@ def progress_setter(progress,current_time,total_img_num,processed_img_num):
         global last_progress,last_progress_set_time
         progress_percent = round(progress*100)
         total_progress_percent = round((processed_img_num+progress)/total_img_num*100)
-        etr_str = '--:--:--'
-        total_etr_str = '--:--:--'
+        etr_str = "--:--:--"
+        total_etr_str = "--:--:--"
         if state_manager.last_progress is not None and state_manager.last_progress_set_time:
             etr = (current_time-state_manager.last_progress_set_time) * (1-state_manager.last_progress)/(progress-state_manager.last_progress)
             total_etr = (current_time-state_manager.last_progress_set_time) * (total_img_num-processed_img_num-state_manager.last_progress)/(progress-state_manager.last_progress)
             etr_str = seconds_to_hms(etr)
             total_etr_str = seconds_to_hms(total_etr)
-        progress_str = f'{progress_percent}% ETR:{etr_str}'
-        total_progress_str = f'{total_progress_percent}% ETR:{total_etr_str}'
+        progress_str = f"{progress_percent}% ETR:{etr_str}"
+        total_progress_str = f"{total_progress_percent}% ETR:{total_etr_str}"
         # eel.handleSetProgress(progress_percent,progress_str,total_progress_str)
         last_progress = progress
         last_progress_set_time = current_time

@@ -26,19 +26,19 @@ router = APIRouter(
 )
 
 
-@router.post('', status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def py_run_process(
     scale: Annotated[int, Form(ge=1, le=16)],
-    model: Annotated[str, Form(pattern='^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')],
+    model: Annotated[str, Form(pattern="^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$")],
     image: Annotated[UploadFile, File()],
     isSkipAlpha: Annotated[bool, Form()] = False,
 ):
-    if state_manager.last_state == 'processing':
+    if state_manager.last_state == "processing":
         raise HTTPException(status_code=400, detail="A process is already running.")
 
     model_param = model
-    if model_param and ':' in model_param:
-        algoName, modelName = model_param.split(':', 1)
+    if model_param and ":" in model_param:
+        algoName, modelName = model_param.split(":", 1)
     else:
         raise HTTPException(
             status_code=400,
@@ -49,8 +49,8 @@ async def py_run_process(
     filename = image.filename
     if not (
         filename
-        and '.' in filename
-        and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        and "." in filename
+        and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
     ):
         raise HTTPException(
             status_code=400,
@@ -65,16 +65,16 @@ async def py_run_process(
     #     )
 
     try:
-        state_manager.set_process_state('processing')
+        state_manager.set_process_state("processing")
         # Save the uploaded file
         inputImage, outputPath, id = await upload_file(image)
         meta_path = outputPath / "meta.json"
 
         # find model info
-        model_obj = ModelInfo('', '', 4, '')
+        model_obj = ModelInfo("", "", 4, "")
         provider_options = None
         if gpuid >= 0:
-            provider_options = [{'device_id': gpuid}]
+            provider_options = [{"device_id": gpuid}]
         for m in state_manager.model_list:
             if m.name == modelName and m.algo == algoName:
                 model_obj = m
@@ -82,7 +82,7 @@ async def py_run_process(
 
         # 写入 meta
         meta_data = {
-            "status": 'processing',
+            "status": "processing",
             "id": id,
             "model": model_obj.name,
             "algo": model_obj.algo,
@@ -98,16 +98,16 @@ async def py_run_process(
             model_obj.path,
             model_obj.scale,
             model_obj.name,
-            providers=['CUDAExecutionProvider'],
+            providers=["CUDAExecutionProvider"],
             provider_options=provider_options,
             progress_setter=progress_setter,
         )
 
-        print(f'Using providers: {sr_instance.sess.get_providers()}')
+        print(f"Using providers: {sr_instance.sess.get_providers()}")
 
         # skip alpha sr
         if isSkipAlpha:
-            sr_instance.alpha_upsampler = 'interpolation'
+            sr_instance.alpha_upsampler = "interpolation"
 
         output_path = process_image(
             sr_instance,
@@ -127,17 +127,17 @@ async def py_run_process(
             json.dump(meta_data, meta_file, ensure_ascii=False, indent=2)
 
         return {
-            'status': 'success',
-            'id': id,
-            'outputPath': output_path,
-            'outputUrl': f"{base_url}/{rel_output_path.replace(os.sep, '/')}",
-            'modelName': model_obj.name,
-            'scale': model_obj.scale,
-            'algo': model_obj.algo,
+            "status": "success",
+            "id": id,
+            "outputPath": output_path,
+            "outputUrl": f"{base_url}/{rel_output_path.replace(os.sep, '/')}",
+            "modelName": model_obj.name,
+            "scale": model_obj.scale,
+            "algo": model_obj.algo,
         }
 
     except Exception as e:
         error_message = traceback.format_exc()
         state_manager.show_error(error_message)
-        state_manager.set_process_state('error')
+        state_manager.set_process_state("error")
         raise HTTPException(status_code=500, detail=str(e))
