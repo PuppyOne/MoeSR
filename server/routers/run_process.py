@@ -65,7 +65,7 @@ async def py_run_process(
         # Save the uploaded file
         # Generate a unique folder path
         id = str(uuid4())
-        folder_path = base_path / id
+        folder_path = base_path / "tasks" / id
 
         # Generate input file name
         extension = filename.rsplit(".", 1)[1].lower()

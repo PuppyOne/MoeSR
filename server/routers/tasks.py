@@ -13,7 +13,7 @@ router = APIRouter(
 @router.get("/{task_id}")
 async def get_task(task_id: str):
     """获取任务状态"""
-    meta_path = base_path / task_id / "meta.json"
+    meta_path = base_path / "tasks" / task_id / "meta.json"
     if not meta_path.exists():
         raise HTTPException(status_code=404, detail="Task not found.")
 
