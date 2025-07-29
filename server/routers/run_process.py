@@ -37,9 +37,8 @@ async def py_run_process(
     if state_manager.last_state == "processing":
         raise HTTPException(status_code=400, detail="A process is already running.")
 
-    model_param = model
-    if model_param and ":" in model_param:
-        algoName, modelName = model_param.split(":", 1)
+    if model and ":" in model:
+        algoName, modelName = model.split(":", 1)
     else:
         raise HTTPException(
             status_code=400,
