@@ -81,7 +81,15 @@ async def py_run_process(
         model_obj = ModelInfo("", "", 4, "")
         provider_options = None
         if gpuid >= 0:
-            provider_options = [{"device_id": gpuid}]
+            provider_options = [
+                {
+                    "device_id": 0,
+                    "trt_fp16_enable": True,
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_cache",
+                },
+                {"device_id": gpuid},
+            ]
         for m in model_list:
             if m.name == modelName and m.algo == algoName:
                 model_obj = m
@@ -105,7 +113,10 @@ async def py_run_process(
             model_obj.path,
             model_obj.scale,
             model_obj.name,
-            providers=["CUDAExecutionProvider"],
+            providers=[
+                "TensorrtExecutionProvider",
+                "CUDAExecutionProvider",
+            ],
             provider_options=provider_options,
             progress_setter=progress_setter,
         )
