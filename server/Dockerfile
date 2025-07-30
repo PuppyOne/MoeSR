@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu22.04
+FROM nvcr.io/nvidia/tensorrt:25.04-py3
 RUN apt update
 RUN apt install -y python3 python3-pip
 RUN mkdir -p /usr/app
