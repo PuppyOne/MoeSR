@@ -22,6 +22,7 @@ export default function SRForm({
 }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,7 +32,12 @@ export default function SRForm({
     setIsLoading(true);
 
     try {
-      const { data } = await api.post('/run_process', form);
+      const { data } = await api.post('/run_process', form, {
+        onUploadProgress: ({ progress }) => {
+          setUploadProgress(progress);
+        },
+      });
+
       addToast({
         title: 'Success',
         description: `Image processed successfully! Saved to ${data.outputUrl}.`,
@@ -112,7 +118,13 @@ export default function SRForm({
         Skip Alpha Channel
       </Checkbox>
       <Button color="primary" type="submit" isLoading={isLoading} fullWidth>
-        Start
+        {isLoading
+          ? uploadProgress === undefined
+            ? 'Starting...'
+            : uploadProgress >= 1
+            ? 'Processing...'
+            : `Uploading... ${Math.round(uploadProgress * 100)}%`
+          : 'Start'}
       </Button>
     </Form>
   );
