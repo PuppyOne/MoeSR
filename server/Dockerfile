@@ -1,5 +1,5 @@
 FROM nvcr.io/nvidia/tensorrt:25.04-py3
-RUN apt update && apt install -y python3 python3-pip
+RUN apt-get update && apt-get install -y python3 python3-pip
 RUN mkdir -p /usr/app
 WORKDIR /usr/app
 COPY . .
